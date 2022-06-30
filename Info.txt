@@ -1,0 +1,12 @@
+Este é um arquivo de anotações que podem vir a ser necessárias. Mudanças em bibliotecas, configurações e outras coiasas 
+que afetem mais do que só o programa devem ser documentadas aqui.
+
+==> Eu comentei o "#define RUNDIAGNOSTIC" no endereço abaixo. Isso faz com que a biblioteca da memória não printe 
+o diagnostico quando eu chamo o begin. 
+Nesse mesmo arquivo, é possível aumentar a velocidade da memória ao remover funções de verificação.   
+C:\Users\Monitora\Desktop\GEMINI\Gemini 4.0\portable\sketchbook\libraries\SPIMemory-master\src\SPIMemory.h
+
+
+==> 
+
+
