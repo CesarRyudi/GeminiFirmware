@@ -32,7 +32,7 @@
             "cStandard": "c11",
             "cppStandard": "c++11",
             "defines": [
-                "F_CPU=16000000L",
+                "F_CPU=8000000L",
                 "ARDUINO=10809",
                 "ARDUINO_AVR_ATmega2560",
                 "ARDUINO_ARCH_AVR",
