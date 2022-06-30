@@ -1,0 +1,5 @@
+Neste documento, vou anotar as atualizações, as coisas novas de cada versão. 
+
+Versão 4.0.0: Agora tudo que precisa ser alterado pode ser encontrado no arquivo config.h. Debug, nome da versão, etc 
+
+
