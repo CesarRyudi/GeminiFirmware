@@ -1,0 +1,6 @@
+Como carregar bootloader se o programador nao estiver funcionando: 
+
+Baixar e abrir o Zadic
+Selecionar o programador (USBasp, por exemplo)
+Selecionar o driver libusbK(v3.0.7.0)
+Clicar em instalar driver

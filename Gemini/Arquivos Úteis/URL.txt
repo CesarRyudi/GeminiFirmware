@@ -1,0 +1,6 @@
+AT+CFUN=1,1
+AT+CSTT="internet","tmobile","tmobile"
+AT+SAPBR=1,1
+AT+HTTPINIT
+AT+HTTPPARA="CID",1
+AT+HTTPPARA="URL",http://geomonitora.ddns.net:8090/telemetria?Leitura=2131608211558001002003004005006007008009010
