@@ -3,5 +3,5 @@
     "programmer": "arduino:usbasp",
     "port": "COM3",
     "sketch": "Gemini\\Gemini.ino",
-    "configuration": "pinout=mega_pinout,BOD=1v8,LTO=Os,clock=8MHz_external"
+    "configuration": "pinout=mega_pinout,BOD=2v7,LTO=Os,clock=8MHz_external"
 }
