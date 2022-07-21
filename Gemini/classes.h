@@ -65,13 +65,13 @@ class Relogio {
     byte getMes(){return mes;}
     byte getAno(){return ano;}
     byte getHora(){return hora;}
-    byte getMinuto(){return minuto;}
+    byte getMinuto(){return segundo;}
     byte getSegundo(){return segundo;}
   };
 
   Relogio rtc;
 
-/************************************************************************************************************************************************************************************************/
+/***************************************************************************************************************************************************/
 
 class MemoriaFlash {
   private: 
@@ -108,11 +108,11 @@ class MemoriaFlash {
           if(DEBUG){
             String lido_da_flash  = "";
             flash.readStr(enderecoAtual, lido_da_flash);
-            Serial.println((String)lido_da_flash+"salvo no endereco: "+enderecoAtual);
+            Serial.println((String)lido_da_flash+" salvo no endereco: " + enderecoAtual);
           }
 
           enderecoAtual += bitsPorLeitura;
-          long int enderecoConvertido = enderecoAtual / bitsPorLeitura;
+          long enderecoConvertido = enderecoAtual / bitsPorLeitura;
           EEPROM.writeLong(EEPROM_enderecoAtual, enderecoConvertido);
           EEPROM.writeLong(EEPROM_interrupts, 0);
 
@@ -166,7 +166,7 @@ class MemoriaFlash {
       digitalWrite(pwr_memoria, HIGH);
       quantidadeDeLeituras = quantidadeDeLeituras * bitsPorLeitura;
       long inicioLeituras = enderecoAtual - quantidadeDeLeituras;
-      if (inicioLeituras < 0 || inicioLeituras >= enderecoAtual) Serial.println("Quantidade invalida");
+      if (inicioLeituras < 0 || inicioLeituras > enderecoAtual) Serial.println("Quantidade invalida");
       
       
       else if(quantidadeDeLeituras == 0 ){// Acontece se nenhum parâmetro foi passado. Lê a memória inteira 
@@ -176,7 +176,7 @@ class MemoriaFlash {
 
         for (long i = 0; i < enderecoAtual; i += bitsPorLeitura) {
           flash.readStr(i, outputString);
-          Serial.print((String)"==>"+id+outputString);
+          Serial.println((String)"==>"+id+outputString);
         }
 
         Serial.println("#end");
@@ -191,7 +191,7 @@ class MemoriaFlash {
 
         for (long i = inicioLeituras; i < enderecoAtual; i += bitsPorLeitura) {
           flash.readStr(i, outputString);
-          Serial.print((String)"==>"+id+outputString);
+          Serial.println((String)"==>"+id+outputString);
         }
 
         Serial.println("#end");
@@ -212,7 +212,7 @@ class MemoriaFlash {
       
       for (long i = inicio; i < enderecoAtual; i += bitsPorLeitura) {
         flash.readStr(i, outputString);
-        Serial.print((String)"==>"+id+outputString);
+        Serial.println((String)"==>"+id+outputString);
 
       }
       Serial.println("#end");
@@ -225,7 +225,8 @@ class MemoriaFlash {
 
   MemoriaFlash memoria;
 
-/************************************************************************************************************************************************************************************************/
+/***************************************************************************************************************************************************/
+
 class ADC4a20 {
   private: 
   long sensor0, sensor1, sensor2, sensor3;  
@@ -251,6 +252,7 @@ class ADC4a20 {
     }
 
     void read(bool delay_leitura = 1){
+      debugln("Read");
       digitalWrite(pwr_stepUp, HIGH);
       digitalWrite(pwr_ADC, HIGH);
       if(delay_leitura) delay(1500);
@@ -261,6 +263,8 @@ class ADC4a20 {
       mili2 = adcOriginal.read4to20mA(2) * 1000;
       mili3 = adcOriginal.read4to20mA(3) * 1000;
 
+      debugln((String) "mAs: " + mili0 + " " + mili1 + " " + mili2 + " " + mili3);
+
       sensor0 = map(mili0, 3700, 20000,0,(range0*100));
       sensor1 = map(mili1, 3700, 20000,0,(range1*100));
       sensor2 = map(mili2, 3700, 20000,0,(range2*100));
@@ -269,6 +273,8 @@ class ADC4a20 {
       if (sensor1 < 0) sensor1 = 98765;
       if (sensor2 < 0) sensor2 = 98765;
       if (sensor3 < 0) sensor3 = 98765;
+
+      debugln((String) "mAs: " + sensor0 + " " + sensor1 + " " + sensor2 + " " + sensor3);
 
       digitalWrite(pwr_stepUp, LOW);
       digitalWrite(pwr_ADC, LOW);
@@ -334,6 +340,7 @@ class ADC4a20 {
 /*****************************************************************************************************************************/
 class Gemini {
   private:
+
   int n_serie, intervaloDeLeituras, ultimo_minuto;
 
   public:
@@ -341,19 +348,34 @@ class Gemini {
     void begin(){
       n_serie = EEPROM.readLong(EEPROM_id);
       intervaloDeLeituras = EEPROM.read(EEPROM_intervalo);
+      if(intervaloDeLeituras != 5 && intervaloDeLeituras != 10 && intervaloDeLeituras != 15 && intervaloDeLeituras != 20 && intervaloDeLeituras != 30 && intervaloDeLeituras != 60){
+        debugln("Intervalo definido para o padrao");
+        intervaloDeLeituras = intervaloDeLeiturasPadrao;
+      }
+
     } 
+
     
-    bool tempoAcabou(){
+    void dormir(int t) {
+      delay(5);
+
+      for (int i = 0; i <= t; i++) {
+        LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+      }
+    }
+
+    
+    bool tempoAcabou(){ // Retorna truee se o tempo limite já tiver acabado
         long tempoAtual = millis();
         if(tempoAtual > tempoLimite) return true;
         else return false;  
     }
 
     
-    bool horaDeAcrodar(){
+    bool horaDeAcordar(){ // Retorna true se for hora de fazer uma leitura
       rtc.read();
       if (rtc.getMinuto() != ultimo_minuto){
-        Serial.println(".");
+        debugln(".");
         ultimo_minuto = rtc.getMinuto();
 
         if( rtc.getMinuto() == intervaloDeLeituras   ||rtc.getMinuto() == intervaloDeLeituras*2 
@@ -361,10 +383,64 @@ class Gemini {
           ||rtc.getMinuto() == intervaloDeLeituras*5 ||rtc.getMinuto() == intervaloDeLeituras*6
           ||rtc.getMinuto() == intervaloDeLeituras*7 ||rtc.getMinuto() == intervaloDeLeituras*8 
           ||rtc.getMinuto() == intervaloDeLeituras*9 ||rtc.getMinuto() == intervaloDeLeituras*10
-          ||rtc.getMinuto() == intervaloDeLeituras*11||rtc.getMinuto() == intervaloDeLeituras*12)return true;
+          ||rtc.getMinuto() == intervaloDeLeituras*11||rtc.getMinuto() == 0)return true;
           
         else return false;
       }
+    }
+
+    void acordar(){
+      debugln("Acordei");
+      adc.read();
+      debugln("ADC Lido");
+      memoria.write(criaString());
+      debugln("Escrito na memória");
+      EEPROM.writeLong(0, EEPROM_interrupts);
+      debugln("EEPROM OK");
+    }
+
+
+    String criaString(){
+      String dados = "";
+      if (rtc.getDia() < 10) dados.concat(0);
+      dados.concat(rtc.getDia());
+
+      if (rtc.getMes() < 10) dados.concat(0);
+      dados.concat(rtc.getMes());
+
+      if (rtc.getAno() < 10) dados.concat(0);
+      dados.concat(rtc.getAno());
+
+      if (rtc.getHora() < 10) dados.concat(0);
+      dados.concat(rtc.getAno());
+
+      if (rtc.getMinuto() < 10) dados.concat(0);
+      dados.concat(rtc.getMinuto());
+
+      if (adc.getSensor0() < 10000) dados.concat(0);
+      if (adc.getSensor0() < 1000) dados.concat(0);
+      if (adc.getSensor0() < 100) dados.concat(0);
+      if (adc.getSensor0() < 10) dados.concat(0);
+      dados.concat(adc.getSensor0());
+
+      if (adc.getSensor1() < 10000) dados.concat(0);
+      if (adc.getSensor1() < 1000) dados.concat(0);
+      if (adc.getSensor1() < 100) dados.concat(0);
+      if (adc.getSensor1() < 10) dados.concat(0);
+      dados.concat(adc.getSensor1());
+
+      if (adc.getSensor2() < 10000) dados.concat(0);
+      if (adc.getSensor2() < 1000) dados.concat(0);
+      if (adc.getSensor2() < 100) dados.concat(0);
+      if (adc.getSensor2() < 10) dados.concat(0);
+      dados.concat(adc.getSensor2());
+
+      int pulsos = EEPROM.readLong(EEPROM_interrupts);
+      if (pulsos < 100) dados.concat(0);
+      if (pulsos < 10) dados.concat(0);
+      dados.concat(pulsos);
+
+      return dados;
     }
 
 

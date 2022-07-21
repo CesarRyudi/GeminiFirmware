@@ -16,9 +16,11 @@
 #if DEBUG == 1
 #define debug(texto_debug) Serial.print(texto_debug)
 #define debugln(texto_debug) Serial.println(texto_debug)
+#define debugDelay(tempo_delay) delay(tempo_delay)
 #else
 #define debug(texto_debug)
 #define debugln(texto_debug) 
+#define debugDelay(tempo_delay)
 #endif
 
 
@@ -27,6 +29,7 @@
 // Configurações 
 #define tempoLimite 300000
 #define bitsPorLeitura 64
+#define intervaloDeLeiturasPadrao 5
 
 
 //Endereço do relógio
@@ -47,7 +50,7 @@
 #define EEPROM_rangeS2 240
 #define EEPROM_rangeS3 250
 #define EEPROM_ultima_leitura 300
-#define EEPROM_enderecoAtual 0
+#define EEPROM_enderecoAtual 350
 
 
 
