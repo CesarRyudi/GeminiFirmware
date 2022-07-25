@@ -244,11 +244,15 @@ class ADC4a20 {
 
       adcOriginal.begin();
 
-      range0 = EEPROM.readLong(EEPROM_rangeS0);
+      /*range0 = EEPROM.readLong(EEPROM_rangeS0);
       range1 = EEPROM.readLong(EEPROM_rangeS1);
       range2 = EEPROM.readLong(EEPROM_rangeS2);
-      range3 = EEPROM.readLong(EEPROM_rangeS3);
+      range3 = EEPROM.readLong(EEPROM_rangeS3);*/
 
+      range0 = 100;
+      range1 = 100;
+      range2 = 100;
+      range3 = 100;
     }
 
     void read(bool delay_leitura = 1){
@@ -274,7 +278,7 @@ class ADC4a20 {
       if (sensor2 < 0) sensor2 = 98765;
       if (sensor3 < 0) sensor3 = 98765;
 
-      debugln((String) "mAs: " + sensor0 + " " + sensor1 + " " + sensor2 + " " + sensor3);
+      debugln((String) "Sensores: " + sensor0 + " " + sensor1 + " " + sensor2 + " " + sensor3);
 
       digitalWrite(pwr_stepUp, LOW);
       digitalWrite(pwr_ADC, LOW);
@@ -392,11 +396,7 @@ class Gemini {
     void acordar(){
       debugln("Acordei");
       adc.read();
-      debugln("ADC Lido");
       memoria.write(criaString());
-      debugln("Escrito na memória");
-      EEPROM.writeLong(0, EEPROM_interrupts);
-      debugln("EEPROM OK");
     }
 
 
@@ -464,4 +464,36 @@ class Gemini {
 
 
 
+/****************************************************************************************************************/
+class COM {
+
+  public:
+    
+    String serial(int espera = 0) { // Espera um comando na serial pelo tempo informado em segundos no parametro e o retorna. Se o tempo não for informado, espera até que receba algo pela Serial.
+      espera = espera*100;
+      String incoming = "vazio";
+      long idle = millis();
+      if (espera == 0) while(!Serial.available() && !gemini.tempoAcabou()){
+        delay(1);
+        long tempo_esperando = millis() - idle;
+        if (tempo_esperando > 5000) {
+          Serial.println("idle");
+          idle = millis();
+        }
+      }
+
+      else for(int i=0; i<espera; i++){
+        delay(10);
+        if(Serial.available()) break;
+      }
+
+      if(Serial.available()) incoming = Serial.readString();
+      debugln(incoming);
+      return incoming;
+    }
+
+
+};
+
+  COM com;
 
