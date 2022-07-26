@@ -7,6 +7,9 @@ Nesse mesmo arquivo, é possível aumentar a velocidade da memória ao remover f
 C:\Users\Monitora\Desktop\GEMINI\Gemini 4.0\portable\sketchbook\libraries\SPIMemory-master\src\SPIMemory.h
 
 
-==> 
+==> Falta: 
+        Interrupts
+        Comandos do Ronny
+        
 
 

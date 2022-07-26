@@ -11,11 +11,9 @@ void setup(){
     id = 111;
     //gemini.getId();
 
-    delay(2000);
-
     Serial.println((String)"Versao do firmware: "+ versao);
     Serial.println((String)"id = "+ id);
     Serial.println("Iniciado com sucesso. Aguardando comando");
-    String texto = com.serial(10);
+    com.comando(15);
 
 }

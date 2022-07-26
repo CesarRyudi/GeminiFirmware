@@ -65,7 +65,7 @@ class Relogio {
     byte getMes(){return mes;}
     byte getAno(){return ano;}
     byte getHora(){return hora;}
-    byte getMinuto(){return segundo;}
+    byte getMinuto(){return minuto;}
     byte getSegundo(){return segundo;}
   };
 
@@ -127,6 +127,7 @@ class MemoriaFlash {
       String fill = "";
       Serial.println("Criando dados na memoria...");
       for (int i = 0; i < 10000; i++) {
+        debugln(".");
         fill = "";
         fill.concat("0000000000000000000000000");
         if (i < 10000) fill.concat(0);
@@ -140,6 +141,8 @@ class MemoriaFlash {
         long int enderecoConvertido = enderecoAtual / bitsPorLeitura;
         EEPROM.writeLong(EEPROM_enderecoAtual, enderecoConvertido);
       }
+
+      Serial.println("Memorias Criadas");
 
       digitalWrite(pwr_memoria, LOW);
     }
@@ -244,19 +247,14 @@ class ADC4a20 {
 
       adcOriginal.begin();
 
-      /*range0 = EEPROM.readLong(EEPROM_rangeS0);
+      range0 = EEPROM.readLong(EEPROM_rangeS0);
       range1 = EEPROM.readLong(EEPROM_rangeS1);
       range2 = EEPROM.readLong(EEPROM_rangeS2);
-      range3 = EEPROM.readLong(EEPROM_rangeS3);*/
+      range3 = EEPROM.readLong(EEPROM_rangeS3);
 
-      range0 = 100;
-      range1 = 100;
-      range2 = 100;
-      range3 = 100;
     }
 
     void read(bool delay_leitura = 1){
-      debugln("Read");
       digitalWrite(pwr_stepUp, HIGH);
       digitalWrite(pwr_ADC, HIGH);
       if(delay_leitura) delay(1500);
@@ -289,6 +287,11 @@ class ADC4a20 {
     long getSensor1(){return sensor1;}
     long getSensor2(){return sensor2;}
     long getSensor3(){return sensor3;}
+
+    long getMili0() { return mili0; }
+    long getMili1() { return mili1; }
+    long getMili2() { return mili2; }
+    long getMili3() { return mili3; }
 
     long getRange0(){return range0;}
     long getRange1(){return range1;}
@@ -443,7 +446,7 @@ class Gemini {
       return dados;
     }
 
-
+    int getIntervalo() {return intervaloDeLeituras;}
 
 
     int getId(){return n_serie;}
@@ -488,11 +491,177 @@ class COM {
       }
 
       if(Serial.available()) incoming = Serial.readString();
+      else Serial.println("Nenhum comando  recebido.");
       debugln(incoming);
       return incoming;
     }
 
+    bool comando(int t = 0){
+      String entrada = serial(t);
+      if (entrada == "limpar" || entrada == "limpar\r\n") memoria.clean();
+      else if (entrada == "ler" || entrada == "ler\r\n") memoria.read();
+      else if (entrada == "testaMemoria" || entrada == "testaMemoria\r\n") memoria.encheMemoria();
+      else if (entrada == "relogio" || entrada == "relogio\r\n") regulaRelogio();
+      else if (entrada == "range" || entrada == "range\r\n") defineRange();
+      else if (entrada == "id" || entrada == "id\r\n")defineId();
+      else if (entrada == "STATUS" || entrada == "STATUS\r\n" || entrada == "status" || entrada == "status\r\n") Status();
+      else if (entrada == "config" || entrada == "config\r\n") config();
+      else if (entrada == "testa" || entrada == "testa\r\n") testa();
+      else Serial.println("Comando invalido");
 
+      if (entrada == "fim" || entrada == "fim\r\n" || entrada == "FIM" || entrada == "FIM\r\n") return false;
+      else return true;
+    }
+
+    void regulaRelogio(){
+      Serial.println("Regulando relogio. Digite a data e a hora(DDMMAAHHMM):");
+      String recebe = serial();
+      int regulaDia = recebe.substring(0, 2).toInt();
+      int regulaMes = recebe.substring(2, 4).toInt();
+      int regulaAno = recebe.substring(4, 6).toInt();
+      int regulaHora = recebe.substring(6, 8).toInt();
+      int regulaMinuto = recebe.substring(8, 10).toInt();
+
+      rtc.set(regulaDia, regulaMes, regulaAno, regulaHora, regulaMinuto);
+
+      Serial.println("Relogio configuurado");
+    }
+
+    void defineId(){
+      Serial.println("Informe o ID...");
+      String id_recebido = serial();
+      id = id_recebido.toInt();
+      gemini.setId(id);
+      Serial.println("Id configurado");
+    }
+
+    void defineRange(){
+      Serial.println("Qual o range do sensor 0?");
+      String entrada = serial();
+      if(adc.setRange0(entrada.toInt())) Serial.println("Range do sensor0 configurado.");
+      Serial.println("Qual o range do sensor 1?");
+      entrada = serial();
+      if (adc.setRange1(entrada.toInt())) Serial.println("Range do sensor1 configurado.");
+      Serial.println("Qual o range do sensor 2?");
+      entrada = serial();
+      if (adc.setRange2(entrada.toInt())) Serial.println("Range do sensor2 configurado.");
+      Serial.println("Qual o range do sensor 3?");
+      entrada = serial();
+      if (adc.setRange3(entrada.toInt())) Serial.println("Range do sensor3 configurado.");
+    }
+
+    void Status(){
+      Serial.println("#intStatus");
+      rtc.read();
+      adc.read();
+
+      // DATA
+      Serial.print("DATA=");
+      if (rtc.getDia() < 10) Serial.print("0");
+      Serial.print(rtc.getDia());
+      Serial.print("/");
+      if (rtc.getMes() < 10) Serial.print("0");
+      Serial.print(rtc.getMes());
+      Serial.print("/");
+      if (rtc.getAno() < 10) Serial.print("0");
+      Serial.println(rtc.getAno());
+
+      // HORA
+      Serial.print("HORA=");
+      if (rtc.getHora() < 10)
+        Serial.print("0");
+      Serial.print(rtc.getHora());
+      Serial.print(":");
+      if (rtc.getMinuto() < 10)
+        Serial.print("0");
+      Serial.print(rtc.getMinuto());
+      Serial.println("");
+
+      // SENSORES
+      Serial.print("Sensor1:");
+      Serial.print("Range=");
+      Serial.print(adc.getRange0());
+      Serial.print(";Pressao atual=");
+      Serial.print(adc.getSensor0()/100.0);
+      Serial.println(";");
+
+      Serial.print("Sensor2:");
+      Serial.print("Range=");
+      Serial.print(adc.getRange1());
+      Serial.print(";Pressao atual=");
+      Serial.print(adc.getSensor1()/100.0);
+      Serial.println(";");
+
+      // INTERVALO
+      Serial.print("Intervalo:");
+      Serial.println(gemini.getIntervalo());
+      Serial.println("#endStatus");
+    }
+
+    void config(){
+      while (!gemini.tempoAcabou()){
+        Serial.println("Modo de configuracao. Aguardando comando...");
+        if(!comando()) break;
+      }
+    }  
+
+
+    void testa(){
+      while (!gemini.tempoAcabou()){
+        comando(1);
+        Serial.println("Modo de testes");
+        rtc.read();
+        adc.read();
+
+        // DATA
+        Serial.print("DATA=");
+        if (rtc.getDia() < 10)
+          Serial.print("0");
+        Serial.print(rtc.getDia());
+        Serial.print("/");
+        if (rtc.getMes() < 10)
+          Serial.print("0");
+        Serial.print(rtc.getMes());
+        Serial.print("/");
+        if (rtc.getAno() < 10)
+          Serial.print("0");
+        Serial.println(rtc.getAno());
+
+        // HORA
+        Serial.print("HORA=");
+        if (rtc.getHora() < 10) Serial.print("0");
+        Serial.print(rtc.getHora());
+        Serial.print(":");
+        if (rtc.getMinuto() < 10) Serial.print("0");
+        Serial.print(rtc.getMinuto());
+        Serial.println("");
+
+        // SENSORES
+        Serial.print("Sensor0: ");
+        Serial.print(adc.getSensor0() / 100.0);
+        Serial.print(";  Milis:");
+        Serial.println(adc.getMili0());
+
+        Serial.print("Senso1: ");
+        Serial.print(adc.getSensor1() / 100.0);
+        Serial.print(";  Milis:");
+        Serial.println(adc.getMili1());
+        
+        Serial.print("Sensor2: ");
+        Serial.print(adc.getSensor2() / 100.0);
+        Serial.print(";  Milis:");
+        Serial.println(adc.getMili2());
+
+        Serial.print("Sensor3: ");
+        Serial.print(adc.getSensor3() / 100.0);
+        Serial.print(";  Milis:");
+        Serial.println(adc.getMili3());
+
+        memoria.write(gemini.criaString());
+        Serial.println();
+        Serial.println();
+      }
+    }
 };
 
   COM com;

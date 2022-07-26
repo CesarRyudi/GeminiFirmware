@@ -53,13 +53,6 @@
 #define EEPROM_enderecoAtual 350
 
 
-
-// Modos
-#define normal 0
-#define configuracao 1
-#define testa 2
-
-
 // Variaveis globais
 int id;
 
