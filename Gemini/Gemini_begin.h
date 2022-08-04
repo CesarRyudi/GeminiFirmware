@@ -8,8 +8,7 @@ void setup(){
     memoria.begin();
     adc.begin();
     gemini.begin();
-    id = 111;
-    //gemini.getId();
+    gemini.getId();
 
     Serial.println((String)"Versao do firmware: "+ versao);
     Serial.println((String)"id = "+ id);
