@@ -1,4 +1,5 @@
- #include "config.h"
+ #include "Funcoes.h"
+
 
 class Relogio {
   private:
@@ -203,8 +204,6 @@ class MemoriaFlash {
       digitalWrite(pwr_memoria, LOW);
     }
 
-
-
     void readNew(){
       digitalWrite(pwr_memoria, HIGH);
       delay(100);
@@ -345,7 +344,82 @@ class ADC4a20 {
   ADC4a20 adc;
 
 /*****************************************************************************************************************************/
-class Gemini {
+
+  class Interrupt
+  {
+  public:
+    void begin()
+    {
+      attachInterrupt(digitalPinToInterrupt(interruptPin), interrupt1, LOW);
+      attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, LOW);
+    }
+
+    void botao()
+    {
+      int1Acionado = false;
+      adc.read(0);
+      digitalWrite(ledPower, HIGH);
+      if (adc.getMili0() > 300)
+        digitalWrite(ledSensor1, HIGH);
+      if (adc.getMili1() > 300)
+        digitalWrite(ledSensor2, HIGH);
+      if (adc.getMili2() > 300)
+        digitalWrite(ledSensor3, HIGH);
+      if (rtc.getAno() == 0 || rtc.getAno() > 80)
+      {
+        for (int i = 0; i < 4; i++)
+        {
+          digitalWrite(ledStatus, HIGH);
+          delay(250);
+          digitalWrite(ledStatus, LOW);
+          delay(250);
+        }
+        digitalWrite(ledStatus, HIGH);
+        delay(500);
+      }
+      else
+      {
+        digitalWrite(ledStatus, HIGH);
+        delay(3000);
+      }
+
+      digitalWrite(ledSensor1, LOW);
+      digitalWrite(ledSensor2, LOW);
+      digitalWrite(ledSensor3, LOW);
+      digitalWrite(ledStatus, LOW);
+      digitalWrite(ledPower, LOW);
+
+      attachInterrupt(digitalPinToInterrupt(interruptPin), interrupt1, LOW);
+      attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, LOW);
+    }
+
+    void pulso()
+    {
+      int2Acionado = false;
+      int contagem_pulsos = EEPROM.readLong(EEPROM_interrupts);
+      contagem_pulsos++;
+      debugln(String("Contagem de pulsso atual = " + contagem_pulsos));
+      EEPROM.writeLong(EEPROM_interrupts, contagem_pulsos);
+      delay(500);
+      attachInterrupt(digitalPinToInterrupt(interruptPin), interrupt1, LOW);
+      attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, LOW);
+    }
+
+    void verifica()
+    {
+      if (int1Acionado == true)
+        botao();
+      else if (int2Acionado == true)
+        pulso();
+    }
+  };
+
+  Interrupt interrupt;
+
+  /*****************************************************************************************************************************/
+
+  class Gemini
+  {
   private:
 
   int n_serie, intervaloDeLeituras, ultimo_minuto;
@@ -359,6 +433,8 @@ class Gemini {
         debugln("Intervalo definido para o padrao");
         intervaloDeLeituras = intervaloDeLeiturasPadrao;
       }
+
+      interrupt.begin();
 
     } 
 
@@ -446,12 +522,15 @@ class Gemini {
       return dados;
     }
 
-    int getIntervalo() {return intervaloDeLeituras;}
-
+    int getIntervalo() {
+      intervaloDeLeituras = EEPROM.read(EEPROM_intervalo);
+      return intervaloDeLeituras;
+    }
 
     int getId(){return n_serie;}
 
     bool setId(int valor_id){
+
       if(valor_id > 999 || valor_id < 0 ) return false;
       else{
         n_serie = valor_id;
@@ -460,6 +539,14 @@ class Gemini {
       }
     }
 
+    bool setIntervalo(int intervalo){
+      if (intervalo != 5 && intervalo != 10 && intervalo != 15 && intervalo != 20 && intervalo != 30 && intervalo != 60)
+        intervalo = 5;
+      if (intervalo < 5)
+        intervalo = 5;
+      EEPROM.write(EEPROM_intervalo, intervalo);
+      return true;
+    }
 
 };
 
@@ -491,27 +578,64 @@ class COM {
       }
 
       if(Serial.available()) incoming = Serial.readString();
-      else Serial.println("Nenhum comando  recebido.");
+      else Serial.println("Nenhum comando recebido");
       debugln(incoming);
       return incoming;
     }
 
     bool comando(int t = 0){
       String entrada = serial(t);
-      if (entrada == "limpar" || entrada == "limpar\r\n") memoria.clean();
-      else if (entrada == "ler" || entrada == "ler\r\n") memoria.read();
-      else if (entrada == "testaMemoria" || entrada == "testaMemoria\r\n") memoria.encheMemoria();
-      else if (entrada == "relogio" || entrada == "relogio\r\n") regulaRelogio();
-      else if (entrada == "range" || entrada == "range\r\n") defineRange();
-      else if (entrada == "id" || entrada == "id\r\n")defineId();
-      else if (entrada == "STATUS" || entrada == "STATUS\r\n" || entrada == "status" || entrada == "status\r\n") Status();
-      else if (entrada == "config" || entrada == "config\r\n") config();
-      else if (entrada == "testa" || entrada == "testa\r\n") testa();
-      else Serial.println("Comando invalido");
 
-      if (entrada == "fim" || entrada == "fim\r\n" || entrada == "FIM" || entrada == "FIM\r\n") return false;
-      else return true;
-    }
+      if (entrada.substring(0, 4) == "CFre"){
+        String recebe = entrada.substring(4, 14);
+        int regulaDia = recebe.substring(0, 2).toInt();
+        int regulaMes = recebe.substring(2, 4).toInt();
+        int regulaAno = recebe.substring(4, 6).toInt();
+        int regulaHora = recebe.substring(6, 8).toInt();
+        int regulaMinuto = recebe.substring(8, 10).toInt();
+        rtc.set(regulaDia, regulaMes, regulaAno, regulaHora, regulaMinuto);
+        Serial.println("CF:ok");
+      }
+
+      if (entrada.substring(0, 4) == "CFin")
+      {
+        String sub = entrada.substring(4, 6);
+        int intervalo = sub.toInt();
+        debugln(intervalo);
+        if (gemini.setIntervalo(intervalo)) Serial.println("CF:ok");
+      }
+
+        else if (entrada == "limpar" || entrada == "limpar\r\n")
+          memoria.clean();
+        else if (entrada == "ler" || entrada == "ler\r\n" || entrada == "lertudo" || entrada == "lertudo\r\n")
+          memoria.read();
+        else if (entrada == "testaMemoria" || entrada == "testaMemoria\r\n")
+          memoria.encheMemoria();
+        else if (entrada == "relogio" || entrada == "relogio\r\n")
+          regulaRelogio();
+        else if (entrada == "range" || entrada == "range\r\n")
+          defineRange();
+        else if (entrada == "id" || entrada == "id\r\n")
+          defineId();
+        else if (entrada == "intervalo" || entrada == "intervalo\r\n")
+          defineIntervalo();
+        else if (entrada == "STATUS" || entrada == "STATUS\r\n" || entrada == "status" || entrada == "status\r\n")
+          Status();
+        else if (entrada == "config" || entrada == "config\r\n")
+          config();
+        else if (entrada == "testa" || entrada == "testa\r\n")
+          testa();
+        else
+          Serial.println("Comando invalido");
+        
+        if (entrada == "fim" || entrada == "fim\r\n" || entrada == "FIM" || entrada == "FIM\r\n" || entrada == "CFfi" || entrada == "CFfi\r\n"){
+          Serial.println("FIM:ok");
+          return false;
+        }
+
+        else
+          return true;
+      }
 
     void regulaRelogio(){
       Serial.println("Regulando relogio. Digite a data e a hora(DDMMAAHHMM):");
@@ -548,6 +672,16 @@ class COM {
       Serial.println("Qual o range do sensor 3?");
       entrada = serial();
       if (adc.setRange3(entrada.toInt())) Serial.println("Range do sensor3 configurado.");
+    }
+
+    void defineIntervalo()
+    {
+      Serial.println("Informe o intervalo...");
+      String int_recebido = serial();
+      int intervalo = int_recebido.toInt();
+      debugln(intervalo);
+      gemini.setIntervalo(intervalo);
+      Serial.println("Intervalo configurado");
     }
 
     void Status(){
@@ -598,13 +732,20 @@ class COM {
       Serial.println("#endStatus");
     }
 
-    void config(){
+    void config()
+    {
+      long Idle = millis();
+      Serial.println("Modo de configuracao. Aguardando comando...");
       while (!gemini.tempoAcabou()){
-        Serial.println("Modo de configuracao. Aguardando comando...");
         if(!comando()) break;
+        long tempo_esperando = millis() - Idle;
+        if (tempo_esperando > 10000)
+        {
+          Serial.println("idle");
+          Idle = millis();
+        }
       }
-    }  
-
+    }
 
     void testa(){
       while (!gemini.tempoAcabou()){
@@ -665,5 +806,7 @@ class COM {
 };
 
   COM com;
+
+  /*********************************************************************************/
 
 

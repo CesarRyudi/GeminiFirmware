@@ -1,11 +1,10 @@
 #include "Gemini_begin.h""
 
 void loop(){
-    gemini.dormir(30);
+    interrupt.verifica();
     if(gemini.horaDeAcordar()) {
         debugln("Hora de acordar");
         gemini.acordar();
     }
-
+    gemini.dormir(30);
 }
-
