@@ -1,6 +1,7 @@
 #include "classes.h"
 
 
+
 void setup(){
     //Begins 
     Serial.begin(38400);
@@ -8,7 +9,7 @@ void setup(){
     memoria.begin();
     adc.begin();
     gemini.begin();
-    gemini.getId();
+    id = gemini.getId();
 
     Serial.println("Inicio");
     Serial.println("");
