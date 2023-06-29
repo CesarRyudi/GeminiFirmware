@@ -5,6 +5,7 @@
 void setup(){
     //Begins 
     Serial.begin(38400);
+    telemetria.begin();
     rtc.begin();
     memoria.begin();
     adc.begin();
