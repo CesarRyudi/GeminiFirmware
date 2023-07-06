@@ -29,7 +29,7 @@
 // Configurações 
 #define tempoLimite 300000
 #define bitsPorLeitura 64
-#define intervaloDeLeiturasPadrao 5
+#define intervaloDeLeiturasPadrao 15
 
 
 //Endereço do relógio

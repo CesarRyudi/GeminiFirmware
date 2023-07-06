@@ -6,6 +6,7 @@
 #define pwr_RTC 2
 #define pwr_TLM 43 // Power da segunda memória
 #define rst_TLM 15
+// #define pwr_TLM 14
 
 //Interrupts
 #define interruptPin  18  // Pino do sensor de efeito hall

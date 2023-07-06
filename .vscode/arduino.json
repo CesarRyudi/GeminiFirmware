@@ -1,7 +1,8 @@
 {
-    "port": "COM3",
-    "configuration": "pinout=mega_pinout,BOD=1v8,LTO=Os,clock=8MHz_external",
-    "board": "arduino:avr:2560",
-    "programmer": "arduino:usbasp",
-    "sketch": "Gemini\\Gemini.ino"
+  "port": "COM3",
+  "configuration": "pinout=mega_pinout,BOD=1v8,LTO=Os,clock=8MHz_external",
+  "board": "arduino:avr:2560",
+  "programmer": "arduino:usbasp",
+  "defaultBaudRate": 38400,
+  "sketch": "Gemini\\Gemini.ino"
 }

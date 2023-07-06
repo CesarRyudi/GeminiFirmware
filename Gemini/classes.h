@@ -219,8 +219,8 @@ public:
       }
 
       Serial.println("#end");
-      delay(2000);
-      Serial.println(dados);
+      delay(1000);
+      // Serial.println(dados);
       digitalWrite(pwr_memoria, LOW);
       return dados;
     }
@@ -610,9 +610,9 @@ public:
   bool setIntervalo(int intervalo)
   {
     if (intervalo != 5 && intervalo != 10 && intervalo != 15 && intervalo != 20 && intervalo != 30 && intervalo != 60)
-      intervalo = 5;
+      intervalo = intervaloDeLeiturasPadrao;
     if (intervalo < 5)
-      intervalo = 5;
+      intervalo = intervaloDeLeiturasPadrao;
     EEPROM.write(EEPROM_intervalo, intervalo);
     return true;
   }
@@ -626,21 +626,73 @@ class Telemetria
 private:
   bool envioSucesso = false, erro = false;
 
-  String TeleRead()
+  String TeleRead(int tempo = 15)
+  {
+    String incoming = "";
+    for (int i = 0; i < tempo * 100; i++)
+    {
+      delay(10);
+      if (SerialTelemetria.available())
+      {
+        incoming = SerialTelemetria.readString();
+        return incoming;
+        break;
+      }
+    }
+  }
+
+  void VerificaInicio()
+
   {
     String incoming = "";
     for (int i = 0; i < 1500; i++)
     {
       delay(10);
       if (SerialTelemetria.available())
-        break;
-    }
+      {
+        incoming = SerialTelemetria.readString();
+        if (incoming == "\r\nAPP RDY\r\n")
+        {
 
-    if (SerialTelemetria.available())
+          debug("Entrada correta:");
+          debugln(incoming);
+          break;
+        }
+      }
+    }
+    debugln("Saiu do inicio");
+  }
+
+  bool EnvioDeuCerto()
+  {
+
+    String retorno = TeleRead();
+    String trecho = "+QHTTPPOST: 0,200";
+    if (retorno.indexOf(trecho) != -1)
     {
-      incoming = SerialTelemetria.readString();
-      debug(incoming);
-      return incoming;
+      debugln("Deu certo o do ChatGPT!!");
+      debug("O retorno é: ");
+      debugln(retorno);
+      return true;
+    }
+    else if (retorno.indexOf("OK") != -1)
+    {
+      debug("Deu um ok simples:");
+      debugln(retorno);
+      retorno = TeleRead();
+      if (retorno.indexOf(trecho) != -1)
+      {
+        debugln("Deu certo o do ChatGPT com ok separado!!");
+        debug("O retorno é: ");
+        debugln(retorno);
+        return true;
+      }
+    }
+    else
+    {
+      debug("Deu errado chatGPT: ");
+      debugln(retorno);
+      return false;
     }
   }
 
@@ -651,16 +703,53 @@ private:
 
       debugln();
       debugln("Entrada ok");
+      debug("Entrada:");
+      debugln(incoming);
       return true;
     }
     else
     {
-      debugln();
-      debugln("Entrada não ok XXXXXX");
-      debug("Entrada:");
+      debug("Erro: ");
       debugln(incoming);
-      erro = true;
-      return false;
+
+      incoming = TeleRead(2);
+      debug("Tentando de novo: ");
+      debugln(incoming);
+
+      if (esperado == incoming)
+      {
+
+        debugln();
+        debugln("Entrada ok");
+        debug("Entrada:");
+        debugln(incoming);
+        return true;
+      }
+      else
+      {
+        incoming = TeleRead(2);
+        debug("Tentando de novo 2: ");
+        debugln(incoming);
+
+        if (esperado == incoming)
+        {
+
+          debugln();
+          debugln("Entrada ok");
+          debug("Entrada:");
+          debugln(incoming);
+          return true;
+        }
+        else
+        {
+          debugln();
+          debugln("Entrada não ok XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+          debug("Entrada:");
+          debugln(incoming);
+          erro = true;
+          return false;
+        }
+      }
     }
   }
 
@@ -681,23 +770,25 @@ public:
     while (!envioSucesso)
     {
       tentativas++;
-      if (tentativas > 3)
+      if (tentativas > 5)
       {
         debugln("Deu ruim");
         break;
       }
 
       digitalWrite(pwr_TLM, LOW);
-      delay(2500);
-      digitalWrite(pwr_TLM, HIGH);
-      delay(2500);
-      digitalWrite(rst_TLM, LOW);
       debugln("Telemetria desligada");
+      delay(1500);
+      digitalWrite(pwr_TLM, HIGH);
+      debugln("Telemetria ligada");
+      delay(1000);
+      digitalWrite(rst_TLM, LOW);
       delay(250);
       digitalWrite(rst_TLM, HIGH);
+      delay(2000);
       debugln("Telemetria Reiniciada");
-      enviaDadosContinua(TeleRead(), "\r\nRDY\r\n");
-      enviaDadosContinua(TeleRead(), "\r\nAPP RDY\r\n");
+      VerificaInicio();
+      delay(2000);
       SerialTelemetria.println("AT+QHTTPURL=54,80");
       debugln("**AT+QHTTPURL=54,80");
       if (!enviaDadosContinua(TeleRead(), "AT+QHTTPURL=54,80\r\r\nCONNECT\r\n"))
@@ -711,23 +802,13 @@ public:
       if (!enviaDadosContinua(TeleRead(), (String) "AT+QHTTPPOST=" + dados.length() + ",80,80\r"))
         continue;
       delay(2000);
-      if (!enviaDadosContinua(TeleRead(), "\r\nCONNECT\r\n"))
+      if (!enviaDadosContinua(TeleRead(30), "\r\nCONNECT\r\n"))
         continue;
+      debugln("Mandando dados para telemetria...");
       SerialTelemetria.println(dados);
-      debugln((String) "**" + dados);
-      if (!enviaDadosContinua(TeleRead(), "\r\nOK\r\n"))
-        continue;
-      String retornoApi = TeleRead();
-      int startIndex = retornoApi.indexOf(",") + 1;
-      int endIndex = retornoApi.indexOf(",", startIndex);
-      if (retornoApi.substring(startIndex, endIndex) == "200")
-      {
-        debugln("Enviado com sucesso!");
-        envioSucesso = true;
-        delay(250);
-      }
-      else
-        debugln("Erro no envio");
+      debugln("Dados enviados para a telemetria!");
+      delay(1000);
+      envioSucesso = EnvioDeuCerto();
     }
 
     digitalWrite(pwr_TLM, LOW);
@@ -815,7 +896,7 @@ public:
     else if (entrada == "STATUS" || entrada == "STATUS\r\n" || entrada == "status" || entrada == "status\r\n")
       Status();
     else if (entrada == "enviaDados" || entrada == "enviaDados\r\n")
-      telemetria.enviaDados(memoria.read(100));
+      telemetria.enviaDados(memoria.read(48));
     else if (entrada == "config" || entrada == "config\r\n")
       config();
     else if (entrada == "testa" || entrada == "testa\r\n")
@@ -884,7 +965,8 @@ public:
     int intervalo = int_recebido.toInt();
     debugln(intervalo);
     gemini.setIntervalo(intervalo);
-    Serial.println("Intervalo configurado");
+    Serial.print("Intervalo configurado para: ");
+    Serial.println(gemini.getIntervalo());
   }
 
   void Status()
