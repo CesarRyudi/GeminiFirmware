@@ -8,7 +8,8 @@
 //Versão do firmware
 #define versao "4.0.0"
 
-
+//Telemetria
+#define url "https://gemini.herokuapp.com/api/v1/telemetria/enviar"
 
 //Debug - Mude a variavel DEBUG_ON para True pra fazer com que o os prints sejam ativados.
 #define DEBUG 1

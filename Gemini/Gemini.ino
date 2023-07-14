@@ -10,7 +10,8 @@ void loop()
     {
         debugln("Hora de acordar");
         gemini.acordar();
-        if (rtc.getMinuto() == 0 && rtc.getHora() == 10)
+        // if (rtc.getMinuto() == 0 && rtc.getHora() == 10)
+        if(true)
         {
             delay(2000);
             telemetria.enviaDados(memoria.read(48));

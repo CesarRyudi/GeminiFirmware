@@ -17,4 +17,5 @@ comandos formatados pra telemetria:
 AT+QHTTPURL=54,80\r\r\nCONNECT\r\n
 
 
-
+AT+CGDCONT=1,"IP","claro.com.br"
+AT+CGDCONT=1,"IP","internet.br"

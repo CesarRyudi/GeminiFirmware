@@ -224,6 +224,7 @@ public:
       digitalWrite(pwr_memoria, LOW);
       return dados;
     }
+    debugDelay(2000);
 
     digitalWrite(pwr_memoria, LOW);
   }
@@ -668,6 +669,7 @@ private:
 
     String retorno = TeleRead();
     String trecho = "+QHTTPPOST: 0,200";
+    String trechoErro = "+QHTTPPOST: 0,500";
     if (retorno.indexOf(trecho) != -1)
     {
       debugln("Deu certo o do ChatGPT!!");
@@ -687,6 +689,19 @@ private:
         debugln(retorno);
         return true;
       }
+      else if (retorno.indexOf(trechoErro) != -1)
+      {
+        debugln("Deu 500. Erro no servidor");
+        debug("O retorno é: ");
+        debugln(retorno);
+        return false;
+      }
+        else
+        {
+          debug("Deu errado o ok separado: ");
+          debugln(retorno);
+          return false;
+        }
     }
     else
     {
@@ -762,6 +777,35 @@ public:
     digitalWrite(rst_TLM, HIGH);
   }
 
+  void comunicaTelemetria()
+  {
+
+    digitalWrite(rst_TLM, HIGH);
+    digitalWrite(pwr_TLM, LOW);
+    delay(2000);
+    digitalWrite(pwr_TLM, HIGH);
+    Serial.println("Telemetria Ligada");
+    delay(2000);
+    digitalWrite(rst_TLM, LOW);
+    delay(250);
+    digitalWrite(rst_TLM, HIGH);
+    Serial.println("Telemetria iniciada");
+
+    while (true)
+    {
+
+      if (Serial.available())
+      {
+        Serial2.write(Serial.read());
+      }
+
+      if (Serial2.available())
+      {
+        Serial.write(Serial2.read());
+      }
+    }
+  }
+
   bool enviaDados(String dados = "")
   {
     digitalWrite(rst_TLM, HIGH);
@@ -770,7 +814,7 @@ public:
     while (!envioSucesso)
     {
       tentativas++;
-      if (tentativas > 5)
+      if (tentativas > 3)
       {
         debugln("Deu ruim");
         break;
@@ -789,12 +833,13 @@ public:
       debugln("Telemetria Reiniciada");
       VerificaInicio();
       delay(2000);
-      SerialTelemetria.println("AT+QHTTPURL=54,80");
-      debugln("**AT+QHTTPURL=54,80");
-      if (!enviaDadosContinua(TeleRead(), "AT+QHTTPURL=54,80\r\r\nCONNECT\r\n"))
+      SerialTelemetria.println("AT+QHTTPURL=53,80");
+      debugln("**AT+QHTTPURL=53,80");
+      if (!enviaDadosContinua(TeleRead(), "AT+QHTTPURL=53,80\r\r\nCONNECT\r\n"))
         continue;
-      SerialTelemetria.println("https://gemini.herokuapp.com/api/v1/telemetria/enviar_");
-      debugln("**https://gemini.herokuapp.com/api/v1/telemetria/enviar_");
+      SerialTelemetria.println(url);
+      debug("**");
+      debugln(url);
       if (!enviaDadosContinua(TeleRead(), "\r\nOK\r\n"))
         continue;
       SerialTelemetria.println((String) "AT+QHTTPPOST=" + dados.length() + ",80,80");
@@ -805,6 +850,7 @@ public:
       if (!enviaDadosContinua(TeleRead(30), "\r\nCONNECT\r\n"))
         continue;
       debugln("Mandando dados para telemetria...");
+      debugln(dados);
       SerialTelemetria.println(dados);
       debugln("Dados enviados para a telemetria!");
       delay(1000);
@@ -895,6 +941,8 @@ public:
       defineIntervalo();
     else if (entrada == "STATUS" || entrada == "STATUS\r\n" || entrada == "status" || entrada == "status\r\n")
       Status();
+    else if (entrada == "telemetria" || entrada == "telemetria\r\n")
+      telemetria.comunicaTelemetria();
     else if (entrada == "enviaDados" || entrada == "enviaDados\r\n")
       telemetria.enviaDados(memoria.read(48));
     else if (entrada == "config" || entrada == "config\r\n")
