@@ -207,8 +207,8 @@ public:
       delay(100);
       String outputString = "";
       String dados = "";
-      dados.concat((String) "leituras=configTelemetria" + id + ";");
-      dados.concat((String) "Data: " + rtc.getDia() + "/" + rtc.getMes() + " Hora: " + rtc.getHora() + ":" + rtc.getMinuto() + ";");
+      dados.concat((String) "leituras=configId" + id + ";");
+      dados.concat((String) "Data:" + rtc.getDia() + "/" + rtc.getMes() + " Hora:" + rtc.getHora() + ":" + rtc.getMinuto() + ";");
 
       for (long i = inicioLeituras; i < enderecoAtual; i += bitsPorLeitura)
       {
@@ -389,7 +389,19 @@ public:
     pinMode(interruptPin, INPUT_PULLUP);
     pinMode(interruptPin2, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(interruptPin), interrupt1, LOW);
-    attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, LOW);
+    attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, FALLING);
+  }
+
+  void ativa()
+  {
+    attachInterrupt(digitalPinToInterrupt(interruptPin), interrupt1, LOW);
+    attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, FALLING);
+  }
+
+  void desativa()
+  {
+    detachInterrupt(digitalPinToInterrupt(interruptPin));
+    detachInterrupt(digitalPinToInterrupt(interruptPin2));
   }
 
   void botao() // Acende os leds quando o botão é pressionado
@@ -429,20 +441,22 @@ public:
     digitalWrite(ledPower, LOW);
 
     attachInterrupt(digitalPinToInterrupt(interruptPin), interrupt1, LOW);
-    attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, LOW);
+    attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, FALLING);
   }
 
   void pulso()
   {
+    delay(100);
     debugln("Pulso");
     int2Acionado = false;
     int contagem_pulsos = EEPROM.readLong(EEPROM_interrupts);
     contagem_pulsos++;
-    debugln(String("Contagem de pulsso atual = " + contagem_pulsos));
+    debug("Contagem de pulsso atual = ");
+    debugln(contagem_pulsos);
     EEPROM.writeLong(EEPROM_interrupts, contagem_pulsos);
-    delay(100);
+    delay(250);
     attachInterrupt(digitalPinToInterrupt(interruptPin), interrupt1, LOW);
-    attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, LOW);
+    attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, FALLING);
   }
 
   void verifica()
@@ -477,11 +491,13 @@ public:
 
   void dormir(int t)
   {
+    debugln("dormir");
     delay(5);
-
+    t = t/2;
     for (int i = 0; i <= t; i++)
     {
-      LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+      LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+      interrupt.verifica();
     }
   }
 
@@ -518,6 +534,7 @@ public:
 
   void acordar()
   {
+
     debug("Acordei: ");
     debugln(rtc.getMinuto());
     adc.read();
@@ -627,7 +644,7 @@ class Telemetria
 private:
   bool envioSucesso = false, erro = false;
 
-  String TeleRead(int tempo = 15)
+  String TeleRead(int tempo = 85)
   {
     String incoming = "";
     for (int i = 0; i < tempo * 100; i++)
@@ -696,12 +713,12 @@ private:
         debugln(retorno);
         return false;
       }
-        else
-        {
-          debug("Deu errado o ok separado: ");
-          debugln(retorno);
-          return false;
-        }
+      else
+      {
+        debug("Deu errado o ok separado: ");
+        debugln(retorno);
+        return false;
+      }
     }
     else
     {
@@ -808,6 +825,9 @@ public:
 
   bool enviaDados(String dados = "")
   {
+    delay(1000);
+    debugln("Enviando dados...");
+    delay(1000);
     digitalWrite(rst_TLM, HIGH);
     envioSucesso = false;
     byte tentativas = 0;
@@ -833,9 +853,9 @@ public:
       debugln("Telemetria Reiniciada");
       VerificaInicio();
       delay(2000);
-      SerialTelemetria.println("AT+QHTTPURL=53,80");
-      debugln("**AT+QHTTPURL=53,80");
-      if (!enviaDadosContinua(TeleRead(), "AT+QHTTPURL=53,80\r\r\nCONNECT\r\n"))
+      SerialTelemetria.println("AT+QHTTPURL=54,80");
+      debugln("**AT+QHTTPURL=54,80");
+      if (!enviaDadosContinua(TeleRead(), "AT+QHTTPURL=54,80\r\r\nCONNECT\r\n"))
         continue;
       SerialTelemetria.println(url);
       debug("**");
@@ -847,7 +867,7 @@ public:
       if (!enviaDadosContinua(TeleRead(), (String) "AT+QHTTPPOST=" + dados.length() + ",80,80\r"))
         continue;
       delay(2000);
-      if (!enviaDadosContinua(TeleRead(30), "\r\nCONNECT\r\n"))
+      if (!enviaDadosContinua(TeleRead(), "\r\nCONNECT\r\n"))
         continue;
       debugln("Mandando dados para telemetria...");
       debugln(dados);
@@ -944,7 +964,11 @@ public:
     else if (entrada == "telemetria" || entrada == "telemetria\r\n")
       telemetria.comunicaTelemetria();
     else if (entrada == "enviaDados" || entrada == "enviaDados\r\n")
-      telemetria.enviaDados(memoria.read(48));
+    {
+      String dadosTelemetria = memoria.read(48);
+      delay(1000);
+      telemetria.enviaDados(dadosTelemetria);
+    }
     else if (entrada == "config" || entrada == "config\r\n")
       config();
     else if (entrada == "testa" || entrada == "testa\r\n")
