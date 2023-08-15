@@ -1,0 +1,21 @@
+AT+QHTTPURL=54,80
+
+https://gemini.herokuapp.com/api/v1/telemetria/enviar_
+
+AT+QHTTPPOST=106,80,80
+
+leituras=config123;1506231133987659876598765000;1506231133987659876598765000;1506231133987659876598765000;
+
+AT+QHTTPREAD=80
+
+
+Para mudar o baud rate:
+AT+IPR=9600;&W
+
+
+comandos formatados pra telemetria:
+AT+QHTTPURL=54,80\r\r\nCONNECT\r\n
+
+
+AT+CGDCONT=1,"IP","claro.com.br"
+AT+CGDCONT=1,"IP","internet.br"

@@ -8,7 +8,8 @@
 //Versão do firmware
 #define versao "4.0.0"
 
-
+//Telemetria
+#define url "https://gemini.herokuapp.com/api/v1/telemetria/enviar_"
 
 //Debug - Mude a variavel DEBUG_ON para True pra fazer com que o os prints sejam ativados.
 #define DEBUG 1
@@ -29,7 +30,7 @@
 // Configurações 
 #define tempoLimite 300000
 #define bitsPorLeitura 64
-#define intervaloDeLeiturasPadrao 5
+#define intervaloDeLeiturasPadrao 15
 
 
 //Endereço do relógio
@@ -51,13 +52,6 @@
 #define EEPROM_rangeS3 250
 #define EEPROM_ultima_leitura 300
 #define EEPROM_enderecoAtual 350
-
-
-
-// Modos
-#define normal 0
-#define configuracao 1
-#define testa 2
 
 
 // Variaveis globais
