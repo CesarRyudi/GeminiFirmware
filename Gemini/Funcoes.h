@@ -4,6 +4,7 @@ bool deveAcordar = false;
 
 bool int1Acionado = false, int2Acionado = false;
 
+
 void interrupt1()
 {
     detachInterrupt(digitalPinToInterrupt(interruptPin));

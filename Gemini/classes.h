@@ -150,6 +150,8 @@ public:
       enderecoAtual += bitsPorLeitura;
       long int enderecoConvertido = enderecoAtual / bitsPorLeitura;
       EEPROM.writeLong(EEPROM_enderecoAtual, enderecoConvertido);
+      if (enderecoAtual >= 99840)
+        break;
     }
 
     Serial.println("Memorias Criadas");
@@ -178,6 +180,8 @@ public:
   String read(long quantidadeDeLeituras = 0)
   { // Lê todos os dados se nenhum parâmetro for informado. Se uma quantidade foi informada, lê aquela quantidade de leituras
     digitalWrite(pwr_memoria, HIGH);
+    debugln("Memória ligada");
+    delay(5000);
     quantidadeDeLeituras = quantidadeDeLeituras * bitsPorLeitura;
     long inicioLeituras = enderecoAtual - quantidadeDeLeituras;
     if (inicioLeituras < 0 || inicioLeituras > enderecoAtual)
@@ -194,7 +198,7 @@ public:
       for (long i = 0; i < enderecoAtual; i += bitsPorLeitura)
       {
         flash.readStr(i, outputString);
-        Serial.println((String) "==>" + id + outputString);
+        Serial.println((String) "==> " + i + ": " + id + outputString);
       }
 
       Serial.println("#end");
@@ -207,26 +211,25 @@ public:
       delay(100);
       String outputString = "";
       String dados = "";
+      rtc.read();
       dados.concat((String) "leituras=configId" + id + ";");
       dados.concat((String) "Data:" + rtc.getDia() + "/" + rtc.getMes() + " Hora:" + rtc.getHora() + ":" + rtc.getMinuto() + ";");
 
       for (long i = inicioLeituras; i < enderecoAtual; i += bitsPorLeitura)
       {
         flash.readStr(i, outputString);
-        Serial.println((String) "==>" + id + outputString);
+        Serial.println((String) "==> " + i + ": " + id + outputString);
         dados.concat(outputString);
         dados.concat(";");
       }
 
       Serial.println("#end");
       delay(1000);
-      // Serial.println(dados);
-      digitalWrite(pwr_memoria, LOW);
       return dados;
     }
-    debugDelay(2000);
 
     digitalWrite(pwr_memoria, LOW);
+    delay(1000);
   }
 
   void readNew()
@@ -493,7 +496,7 @@ public:
   {
     debugln("dormir");
     delay(5);
-    t = t/2;
+    t = t / 2;
     for (int i = 0; i <= t; i++)
     {
       LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
@@ -692,6 +695,7 @@ private:
       debugln("Deu certo o do ChatGPT!!");
       debug("O retorno é: ");
       debugln(retorno);
+      Serial.println("Dados enviados com sucesso!");
       return true;
     }
     else if (retorno.indexOf("OK") != -1)
@@ -704,6 +708,7 @@ private:
         debugln("Deu certo o do ChatGPT com ok separado!!");
         debug("O retorno é: ");
         debugln(retorno);
+        Serial.println("Dados enviados com sucesso!");
         return true;
       }
       else if (retorno.indexOf(trechoErro) != -1)
@@ -786,7 +791,8 @@ private:
   }
 
 public:
-  void begin()
+  void
+  begin()
   {
     SerialTelemetria.begin(9600);
     pinMode(rst_TLM, OUTPUT);
@@ -823,12 +829,13 @@ public:
     }
   }
 
-  bool enviaDados(String dados = "")
+  bool enviaDados(String dados)
   {
-    delay(1000);
     debugln("Enviando dados...");
-    delay(1000);
+    debugln(dados);
+    debugln(dados.length());
     digitalWrite(rst_TLM, HIGH);
+    delay(200);
     envioSucesso = false;
     byte tentativas = 0;
     while (!envioSucesso)
@@ -836,13 +843,74 @@ public:
       tentativas++;
       if (tentativas > 3)
       {
-        debugln("Deu ruim");
+        debugln("Erro no envio.");
         break;
       }
 
       digitalWrite(pwr_TLM, LOW);
       debugln("Telemetria desligada");
-      delay(1500);
+      delay(1000);
+      digitalWrite(pwr_TLM, HIGH);
+      debugln("Telemetria ligada");
+      delay(1000);
+      digitalWrite(rst_TLM, LOW);
+      delay(250);
+      digitalWrite(rst_TLM, HIGH);
+      delay(2000);
+      debugln("Telemetria Reiniciada");
+      VerificaInicio();
+      delay(2000);
+      SerialTelemetria.println("AT+QHTTPURL=54,80");
+      debugln("**AT+QHTTPURL=54,80");
+      if (!enviaDadosContinua(TeleRead(), "AT+QHTTPURL=54,80\r\r\nCONNECT\r\n"))
+        continue;
+      SerialTelemetria.println(url);
+      debug("**");
+      debugln(url);
+      if (!enviaDadosContinua(TeleRead(), "\r\nOK\r\n"))
+        continue;
+      SerialTelemetria.println((String) "AT+QHTTPPOST=" + dados.length() + ",80,80");
+      debugln((String) "**AT+QHTTPPOST=" + dados.length() + ",80,80");
+      if (!enviaDadosContinua(TeleRead(), (String) "AT+QHTTPPOST=" + dados.length() + ",80,80\r"))
+        continue;
+      delay(2000);
+      if (!enviaDadosContinua(TeleRead(), "\r\nCONNECT\r\n"))
+        continue;
+      debugln("Mandando dados para telemetria...");
+      debugln(dados);
+      SerialTelemetria.println(dados);
+      debugln("Dados enviados para a telemetria!");
+      delay(1000);
+      envioSucesso = EnvioDeuCerto();
+    }
+
+    digitalWrite(pwr_TLM, LOW);
+  }
+
+  bool enviaTeste()
+  {
+
+    String dados = "leituras=configId421;Data:22/8 Hora:14:23;000000000000000000000000001512;000000000000000000000000001513;000000000000000000000000001514;000000000000000000000000001515;000000000000000000000000001516;000000000000000000000000001517;000000000000000000000000001518;000000000000000000000000001519;000000000000000000000000001520;000000000000000000000000001521;000000000000000000000000001522;000000000000000000000000001523;000000000000000000000000001524;000000000000000000000000001525;000000000000000000000000001526;000000000000000000000000001527;000000000000000000000000001528;000000000000000000000000001529;000000000000000000000000001530;000000000000000000000000001531;000000000000000000000000001532;000000000000000000000000001533;000000000000000000000000001534;000000000000000000000000001535;000000000000000000000000001536;000000000000000000000000001537;000000000000000000000000001538;000000000000000000000000001539;000000000000000000000000001540;000000000000000000000000001541;000000000000000000000000001542;000000000000000000000000001543;000000000000000000000000001544;000000000000000000000000001545;000000000000000000000000001546;000000000000000000000000001547;000000000000000000000000001548;000000000000000000000000001549;000000000000000000000000001550;000000000000000000000000001551;000000000000000000000000001552;000000000000000000000000001553;000000000000000000000000001554;000000000000000000000000001555;000000000000000000000000001556;000000000000000000000000001557;000000000000000000000000001558;000000000000000000000000001559;";
+
+    debugln("Enviando dados...");
+    debugln(dados);
+    debugln(dados.length());
+    digitalWrite(rst_TLM, HIGH);
+    delay(200);
+    envioSucesso = false;
+    byte tentativas = 0;
+    while (!envioSucesso)
+    {
+      tentativas++;
+      if (tentativas > 3)
+      {
+        debugln("Erro no envio.");
+        break;
+      }
+
+      digitalWrite(pwr_TLM, LOW);
+      debugln("Telemetria desligada");
+      delay(1000);
       digitalWrite(pwr_TLM, HIGH);
       debugln("Telemetria ligada");
       delay(1000);
@@ -963,10 +1031,17 @@ public:
       Status();
     else if (entrada == "telemetria" || entrada == "telemetria\r\n")
       telemetria.comunicaTelemetria();
+    else if (entrada == "enviaTeste" || entrada == "enviaTeste\r\n")
+    {
+      telemetria.enviaTeste();
+    }
     else if (entrada == "enviaDados" || entrada == "enviaDados\r\n")
     {
+      debugln("Lendo memoria...");
+      delay(2000);
       String dadosTelemetria = memoria.read(48);
-      delay(1000);
+      debugln("Ativando Telemetria...");
+      delay(2000);
       telemetria.enviaDados(dadosTelemetria);
     }
     else if (entrada == "config" || entrada == "config\r\n")
