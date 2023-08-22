@@ -459,16 +459,41 @@ public:
     attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, FALLING);
   }
 
-  void verifica()
+  void ativaTestes()
+  {
+    debugln("Modo de testes ativado!");
+    modoDeTestesAcionado = true;
+  }
+
+  bool verifica()
   {
     if (int1Acionado == true)
+    {
       botao();
+      return false;
+    }
     else if (int2Acionado == true)
-      pulso();
+    {
+      ativaTestes();
+      return true;
+    }
+    else
+      return false;
   }
 };
 
 Interrupt interrupt;
+
+// class Timer {
+// private:
+// long tempoInicio;
+
+// public:
+//  void zeraTimer(){
+
+//  }
+
+// };
 
 class Gemini
 {
@@ -493,11 +518,13 @@ public:
   {
     debugln("dormir");
     delay(5);
-    t = t/2;
+    t = t / 2;
     for (int i = 0; i <= t; i++)
     {
       LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
-      interrupt.verifica();
+      bool interrompeu = interrupt.verifica();
+      if (interrompeu)
+        break;
     }
   }
 
@@ -825,7 +852,6 @@ public:
 
   bool enviaDados(String dados = "")
   {
-    delay(1000);
     debugln("Enviando dados...");
     delay(1000);
     digitalWrite(rst_TLM, HIGH);
@@ -1173,3 +1199,31 @@ public:
 };
 
 COM com;
+
+void modoDeTestes()
+{
+  debugln("*******Inicio do modo de testes da homologação");
+  modoDeTestesAcionado = false;
+  delay(2000);
+  while (true)
+  {
+    String dadosTelemetria = memoria.read(48);
+    delay(1000);
+    telemetria.enviaDados(dadosTelemetria);
+    if (digitalRead(3) != 0)
+    {
+      debugln("*******Encerrando modo de testes...");
+      delay(1000);
+      break;
+    }
+    debugln("*******Esperando um pouco...");
+    gemini.dormir(60);
+    debugln("*******Repetindo testes...");
+    delay(1000); 
+  }
+  modoDeTestesAcionado = false;
+  debugln("*******Testes encerrados.");
+  delay(250);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), interrupt1, LOW);
+  attachInterrupt(digitalPinToInterrupt(interruptPin2), interrupt2, FALLING);
+}

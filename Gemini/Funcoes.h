@@ -1,6 +1,6 @@
 #include "config.h"
 
-bool deveAcordar = false;
+bool deveAcordar = false, modoDeTestesAcionado = false;
 
 bool int1Acionado = false, int2Acionado = false;
 

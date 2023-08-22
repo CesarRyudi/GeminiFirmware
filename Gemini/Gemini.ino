@@ -5,6 +5,11 @@ void loop()
 
     debugln("acorda");
     interrupt.verifica();
+    if(modoDeTestesAcionado){
+    debugln("Modo de testes detectado!");
+    modoDeTestes();
+    modoDeTestesAcionado = false;
+    } 
     gemini.horaDeAcordar();
     if (deveAcordar)
     // if(true)
@@ -30,3 +35,5 @@ void loop()
     }
     gemini.dormir(30);
 }
+
+
