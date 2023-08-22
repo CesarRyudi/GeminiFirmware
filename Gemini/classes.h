@@ -461,6 +461,7 @@ public:
 
   void ativaTestes()
   {
+    int2Acionado = false;
     debugln("Modo de testes ativado!");
     modoDeTestesAcionado = true;
   }
@@ -474,6 +475,7 @@ public:
     }
     else if (int2Acionado == true)
     {
+      debugln("Detectou!");
       ativaTestes();
       return true;
     }
@@ -905,6 +907,67 @@ public:
 
     digitalWrite(pwr_TLM, LOW);
   }
+
+  bool enviaTeste()
+  {
+
+    String dados = "leituras=configId421;Data:70/70 Hora:70:70;000000000000000000000000001512;000000000000000000000000001513;000000000000000000000000001514;000000000000000000000000001515;000000000000000000000000001516;000000000000000000000000001517;000000000000000000000000001518;000000000000000000000000001519;000000000000000000000000001520;000000000000000000000000001521;000000000000000000000000001522;000000000000000000000000001523;000000000000000000000000001524;000000000000000000000000001525;000000000000000000000000001526;000000000000000000000000001527;000000000000000000000000001528;000000000000000000000000001529;000000000000000000000000001530;000000000000000000000000001531;000000000000000000000000001532;000000000000000000000000001533;000000000000000000000000001534;000000000000000000000000001535;000000000000000000000000001536;000000000000000000000000001537;000000000000000000000000001538;000000000000000000000000001539;000000000000000000000000001540;000000000000000000000000001541;000000000000000000000000001542;000000000000000000000000001543;000000000000000000000000001544;000000000000000000000000001545;000000000000000000000000001546;000000000000000000000000001547;000000000000000000000000001548;000000000000000000000000001549;000000000000000000000000001550;000000000000000000000000001551;000000000000000000000000001552;000000000000000000000000001553;000000000000000000000000001554;000000000000000000000000001555;000000000000000000000000001556;000000000000000000000000001557;000000000000000000000000001558;000000000000000000000000001559;";
+
+    debugln("Enviando dados...");
+    debugln(dados);
+    debugln(dados.length());
+    digitalWrite(rst_TLM, HIGH);
+    delay(200);
+    envioSucesso = false;
+    byte tentativas = 0;
+    while (!envioSucesso)
+    {
+      tentativas++;
+      if (tentativas > 3)
+      {
+        debugln("Erro no envio.");
+        break;
+      }
+
+      digitalWrite(pwr_TLM, LOW);
+      debugln("Telemetria desligada");
+      delay(1000);
+      digitalWrite(pwr_TLM, HIGH);
+      debugln("Telemetria ligada");
+      delay(1000);
+      digitalWrite(rst_TLM, LOW);
+      delay(250);
+      digitalWrite(rst_TLM, HIGH);
+      delay(2000);
+      debugln("Telemetria Reiniciada");
+      VerificaInicio();
+      delay(2000);
+      SerialTelemetria.println("AT+QHTTPURL=54,80");
+      debugln("**AT+QHTTPURL=54,80");
+      if (!enviaDadosContinua(TeleRead(), "AT+QHTTPURL=54,80\r\r\nCONNECT\r\n"))
+        continue;
+      SerialTelemetria.println(url);
+      debug("**");
+      debugln(url);
+      if (!enviaDadosContinua(TeleRead(), "\r\nOK\r\n"))
+        continue;
+      SerialTelemetria.println((String) "AT+QHTTPPOST=" + dados.length() + ",80,80");
+      debugln((String) "**AT+QHTTPPOST=" + dados.length() + ",80,80");
+      if (!enviaDadosContinua(TeleRead(), (String) "AT+QHTTPPOST=" + dados.length() + ",80,80\r"))
+        continue;
+      delay(2000);
+      if (!enviaDadosContinua(TeleRead(), "\r\nCONNECT\r\n"))
+        continue;
+      debugln("Mandando dados para telemetria...");
+      debugln(dados);
+      SerialTelemetria.println(dados);
+      debugln("Dados enviados para a telemetria!");
+      delay(1000);
+      envioSucesso = EnvioDeuCerto();
+    }
+
+    digitalWrite(pwr_TLM, LOW);
+  }
 };
 
 Telemetria telemetria;
@@ -989,6 +1052,10 @@ public:
       Status();
     else if (entrada == "telemetria" || entrada == "telemetria\r\n")
       telemetria.comunicaTelemetria();
+    else if (entrada == "enviaTeste" || entrada == "enviaTeste\r\n")
+    {
+      telemetria.enviaTeste();
+    }
     else if (entrada == "enviaDados" || entrada == "enviaDados\r\n")
     {
       String dadosTelemetria = memoria.read(48);
@@ -1207,19 +1274,30 @@ void modoDeTestes()
   delay(2000);
   while (true)
   {
-    String dadosTelemetria = memoria.read(48);
     delay(1000);
-    telemetria.enviaDados(dadosTelemetria);
-    if (digitalRead(3) != 0)
+    telemetria.enviaTeste();
+    // debugln("Simulando envio...");
+    // delay(3000);
+
+        if (digitalRead(3) != 0)
     {
       debugln("*******Encerrando modo de testes...");
       delay(1000);
       break;
     }
     debugln("*******Esperando um pouco...");
+    delay(1000);
     gemini.dormir(60);
+
+    if (digitalRead(3) != 0)
+    {
+      debugln("*******Encerrando modo de testes...");
+      delay(1000);
+      break;
+    }
+
     debugln("*******Repetindo testes...");
-    delay(1000); 
+    delay(1000);
   }
   modoDeTestesAcionado = false;
   debugln("*******Testes encerrados.");

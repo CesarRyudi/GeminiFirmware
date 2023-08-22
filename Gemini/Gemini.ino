@@ -4,7 +4,7 @@ void loop()
 {
 
     debugln("acorda");
-    interrupt.verifica();
+    // interrupt.verifica();
     if(modoDeTestesAcionado){
     debugln("Modo de testes detectado!");
     modoDeTestes();
