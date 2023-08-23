@@ -64,6 +64,44 @@ public:
     digitalWrite(pwr_RTC, LOW);
   }
 
+  String autoTeste()
+  {
+    Serial.println("Testando RTC...");
+    bool erro = false;
+    read();
+    byte segundoAtual = segundo;
+    delay(3000);
+    read();
+    if (segundoAtual == segundo)
+    {
+      Serial.println("Erro no RTC: Relógio parado!");
+      erro = true;
+    }
+
+    if (dia > 31 || mes > 12 || hora > 24 || minuto > 60)
+    {
+      Serial.println("Erro de comunicação com o RTC: Relógio não encontrado!");
+      erro = true;
+    }
+    else if (dia == 0 || mes == 0 || ano == 0)
+    {
+      Serial.println("Erro encontrado no RTC: Relógio zerado!");
+      erro = true;
+    }
+    else if (dia == 1 && mes == 1 && ano == 1 && hora == 0)
+    {
+      Serial.println("Erro encontrado no RTC: Relógio zerado!");
+      erro = true;
+    }
+    if (erro)
+      return "RTC; \n";
+    else
+    {
+      Serial.println("Nenhum erro encontrado no RTC!\n");
+      return "";
+    }
+  }
+
   byte getDia() { return dia; }
   byte getMes() { return mes; }
   byte getAno() { return ano; }
@@ -206,7 +244,7 @@ public:
 
     else
     {
-      Serial.println((String) "Lendo as ultimas " + quantidadeDeLeituras + " leituras...");
+      Serial.println((String) "Lendo as ultimas " + quantidadeDeLeituras/bitsPorLeitura + " leituras...");
       Serial.println("#start");
       delay(100);
       String outputString = "";
@@ -251,6 +289,30 @@ public:
 
     digitalWrite(pwr_memoria, LOW);
   }
+
+  String autoTeste()
+  {
+    bool erro = false;
+    String outputString = "";
+    long enderecoTeste = enderecoAtual - bitsPorLeitura;
+
+    Serial.println("Testando memória...");
+    write("TESTE");
+    delay(1000);
+    flash.readStr(enderecoTeste, outputString);
+    if (outputString != "TESTE")
+    {
+      Serial.println("Erro encontrado na memória!");
+      erro = true;
+    }
+    if (erro)
+      return "Memoria; \n";
+    else
+    {
+      Serial.println("Nenhum erro encontrado na Memória! \n");
+      return "";
+    }
+  }
 };
 
 MemoriaFlash memoria;
@@ -279,14 +341,11 @@ public:
     range3 = EEPROM.readLong(EEPROM_rangeS3);
   }
 
-  void read(bool delay_leitura = 1)
+  void read(int delay_leitura = 1500)
   {
     digitalWrite(pwr_stepUp, HIGH);
     digitalWrite(pwr_ADC, HIGH);
-    if (delay_leitura)
-      delay(1500);
-    else
-      delay(100);
+    delay(delay_leitura);
 
     mili0 = adcOriginal.read4to20mA(0) * 1000;
     mili1 = adcOriginal.read4to20mA(1) * 1000;
@@ -294,11 +353,12 @@ public:
     mili3 = adcOriginal.read4to20mA(3) * 1000;
 
     debugln((String) "mAs: " + mili0 + " " + mili1 + " " + mili2 + " " + mili3);
+    debugln((String) "Ranges: " + range0 + " " + range1 + " " + range2 + " " + range3);
 
-    sensor0 = map(mili0, 3700, 20000, 0, (range0 * 100));
-    sensor1 = map(mili1, 3700, 20000, 0, (range1 * 100));
-    sensor2 = map(mili2, 3700, 20000, 0, (range2 * 100));
-    sensor3 = map(mili3, 3700, 20000, 0, (range3 * 100));
+    sensor0 = map(mili0, 3800, 20000, 0, (range0 * 100));
+    sensor1 = map(mili1, 3800, 20000, 0, (range1 * 100));
+    sensor2 = map(mili2, 3800, 20000, 0, (range2 * 100));
+    sensor3 = map(mili3, 3800, 20000, 0, (range3 * 100));
     if (sensor0 < 0)
       sensor0 = 98765;
     if (sensor1 < 0)
@@ -312,6 +372,46 @@ public:
 
     digitalWrite(pwr_stepUp, LOW);
     digitalWrite(pwr_ADC, LOW);
+  }
+
+  String autoTeste()
+  {
+    bool erro = false;
+    Serial.println("Testando ADC...");
+    read(5000);
+    if (mili0 > 13000 || mili0 < 11000)
+    {
+      Serial.println("Erro encontrado no Sensor 0!");
+      erro = true;
+    }
+    if (mili1 > 13000 || mili1 < 11000)
+    {
+      Serial.println("Erro encontrado no Sensor 1!");
+      erro = true;
+    }
+    if (mili2 > 13000 || mili2 < 11000)
+    {
+      Serial.println("Erro encontrado no Sensor 2!");
+      erro = true;
+    }
+    if (mili3 > 13000 || mili3 < 11000)
+    {
+      Serial.println("Erro encontrado no Sensor 3!");
+      erro = true;
+    }
+
+    if (sensor0 == 98765 && sensor1 == 98765 && sensor2 == 98765 && sensor3 == 98765){
+      Serial.println("Testador de ADC não conectado!");
+    }
+
+    Serial.println("");
+
+    if (erro)
+      return "ADC; \n";
+    else{
+      Serial.println("Nenhum erro encontrado no ADC! \n");
+      return "";
+    }
   }
 
   long getSensor0() { return sensor0; }
@@ -411,7 +511,7 @@ public:
   {
     debugln("Botão");
     int1Acionado = false;
-    adc.read(0);
+    adc.read(100);
     digitalWrite(ledPower, HIGH);
     if (adc.getMili0() > 300)
       digitalWrite(ledSensor1, HIGH);
@@ -637,6 +737,31 @@ public:
     EEPROM.write(EEPROM_intervalo, intervalo);
     return true;
   }
+
+  void autoTeste()
+  {
+    Serial.println("");
+    String erros = "";
+    erros.concat(rtc.autoTeste());
+    delay(1000);
+    erros.concat(adc.autoTeste());
+    delay(1000);
+    erros.concat(memoria.autoTeste());
+    delay(1000);
+
+    if (erros.length() > 4)
+    {
+      Serial.println("");
+      Serial.println("==> Erros encontrados: ");
+      Serial.println(erros);
+    }
+    else
+      Serial.println("\n==> PLACA MÃE APROVADA! Nenhum erro encontrado na placa mãe.");
+
+    Serial.println("");
+    Serial.println("TESTES FINALIZADOS!");
+    Serial.println("");
+  }
 };
 
 Gemini gemini;
@@ -662,9 +787,7 @@ private:
     }
   }
 
-  void VerificaInicio()
-
-  {
+  void VerificaInicio(){
     String incoming = "";
     for (int i = 0; i < 1500; i++)
     {
@@ -1031,7 +1154,7 @@ public:
       Status();
     else if (entrada == "telemetria" || entrada == "telemetria\r\n")
       telemetria.comunicaTelemetria();
-    else if (entrada == "enviaTeste" || entrada == "enviaTeste\r\n")
+    else if (entrada == "testeTelemetria" || entrada == "testeTelemetria\r\n")
     {
       telemetria.enviaTeste();
     }
@@ -1046,6 +1169,8 @@ public:
     }
     else if (entrada == "config" || entrada == "config\r\n")
       config();
+    else if (entrada == "autoTeste" || entrada == "autoTeste\r\n")
+      gemini.autoTeste();
     else if (entrada == "testa" || entrada == "testa\r\n")
       testa();
     else
