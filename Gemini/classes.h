@@ -759,7 +759,7 @@ public:
       Serial.println("\n==> PLACA MÃE APROVADA! Nenhum erro encontrado na placa mãe.");
 
     Serial.println("");
-    Serial.println("TESTES FINALIZADOS!");
+    Serial.println("-------- TESTES FINALIZADOS! --------");
     Serial.println("");
   }
 };
