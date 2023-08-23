@@ -23,6 +23,6 @@ void setup(){
     Serial.println((String)"Versao do firmware: "+ versao);
     Serial.println((String)"id = "+ id);
     Serial.println("Iniciado com sucesso. Aguardando comando");
-    com.comando(15);
-
+    com.comando(10);
+    debugln("Modo de testes Iniciado!");
 }
