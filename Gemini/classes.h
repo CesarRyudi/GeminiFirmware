@@ -299,7 +299,11 @@ public:
     Serial.println("Testando memória...");
     write("TESTE");
     delay(1000);
+    digitalWrite(pwr_memoria, HIGH);
+    delay(500);
     flash.readStr(enderecoTeste, outputString);
+    delay(500);
+    digitalWrite(pwr_memoria, HIGH);
     if (outputString != "TESTE")
     {
       Serial.println("Erro encontrado na memória!");
