@@ -296,15 +296,9 @@ public:
 
     Serial.println("Testando memória...");
     String teste = "TESTE";
-    debug("Endereço atual antes da escrita: ");
-    debugln(enderecoAtual);
     write(teste);
     delay(1000);
     long enderecoTeste = enderecoAtual - bitsPorLeitura;
-    debug("Endereço atual: ");
-    debugln(enderecoAtual);
-    debug("Lendo no endereço: ");
-    debugln(enderecoTeste);
     digitalWrite(pwr_memoria, HIGH);
     delay(500);
     flash.readStr(enderecoTeste, outputString);
