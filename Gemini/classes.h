@@ -297,16 +297,18 @@ public:
     long enderecoTeste = enderecoAtual - bitsPorLeitura;
 
     Serial.println("Testando memória...");
-    write("TESTE");
+    String teste = "TESTE";
+    write(teste);
     delay(1000);
     digitalWrite(pwr_memoria, HIGH);
     delay(500);
     flash.readStr(enderecoTeste, outputString);
     delay(500);
-    digitalWrite(pwr_memoria, HIGH);
+    digitalWrite(pwr_memoria, LOW);
     if (outputString != "TESTE")
     {
       Serial.println("Erro encontrado na memória!");
+      Serual.println(outputString);
       erro = true;
     }
     if (erro)
