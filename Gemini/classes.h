@@ -218,8 +218,7 @@ public:
   String read(long quantidadeDeLeituras = 0)
   { // Lê todos os dados se nenhum parâmetro for informado. Se uma quantidade foi informada, lê aquela quantidade de leituras
     digitalWrite(pwr_memoria, HIGH);
-    debugln("Memória ligada");
-    delay(5000);
+    delay(250);
     quantidadeDeLeituras = quantidadeDeLeituras * bitsPorLeitura;
     long inicioLeituras = enderecoAtual - quantidadeDeLeituras;
     if (inicioLeituras < 0 || inicioLeituras > enderecoAtual)
@@ -294,12 +293,18 @@ public:
   {
     bool erro = false;
     String outputString = "";
-    long enderecoTeste = enderecoAtual - bitsPorLeitura;
 
     Serial.println("Testando memória...");
     String teste = "TESTE";
+    debug("Endereço atual antes da escrita: ");
+    debugln(enderecoAtual);
     write(teste);
     delay(1000);
+    long enderecoTeste = enderecoAtual - bitsPorLeitura;
+    debug("Endereço atual: ");
+    debugln(enderecoAtual);
+    debug("Lendo no endereço: ");
+    debugln(enderecoTeste);
     digitalWrite(pwr_memoria, HIGH);
     delay(500);
     flash.readStr(enderecoTeste, outputString);
@@ -308,7 +313,7 @@ public:
     if (outputString != "TESTE")
     {
       Serial.println("Erro encontrado na memória!");
-      Serual.println(outputString);
+      Serial.println(outputString);
       erro = true;
     }
     if (erro)
@@ -1145,7 +1150,7 @@ public:
     else if (entrada == "limpar" || entrada == "limpar\r\n")
       memoria.clean();
     else if (entrada == "ler" || entrada == "ler\r\n" || entrada == "lertudo" || entrada == "lertudo\r\n")
-      memoria.read(100);
+      memoria.read();
     else if (entrada == "testaMemoria" || entrada == "testaMemoria\r\n")
       memoria.encheMemoria();
     else if (entrada == "relogio" || entrada == "relogio\r\n")
