@@ -293,12 +293,12 @@ public:
   String autoTeste()
   {
     bool erro = false;
-    String outputString = "";
-    long enderecoTeste = enderecoAtual - bitsPorLeitura;
 
     Serial.println("Testando memória...");
     write("TESTE");
     delay(1000);
+    String outputString = "";
+    long enderecoTeste = enderecoAtual - bitsPorLeitura;
     flash.readStr(enderecoTeste, outputString);
     if (outputString != "TESTE")
     {
