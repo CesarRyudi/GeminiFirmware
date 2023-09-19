@@ -356,9 +356,14 @@ public:
     debugln((String) "Ranges: " + range0 + " " + range1 + " " + range2 + " " + range3);
 
     sensor0 = map(mili0, 3800, 20000, 0, (range0 * 100));
+    sensor0 = sensor0 + 1.9;
     sensor1 = map(mili1, 3800, 20000, 0, (range1 * 100));
+    sensor1 = sensor1 + 1.9;
     sensor2 = map(mili2, 3800, 20000, 0, (range2 * 100));
+    sensor2 = sensor2 + 1.9;
     sensor3 = map(mili3, 3800, 20000, 0, (range3 * 100));
+    sensor3 = sensor3 + 1.9;
+    
     if (sensor0 < 0)
       sensor0 = 98765;
     if (sensor1 < 0)

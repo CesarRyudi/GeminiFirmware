@@ -12,7 +12,7 @@
 #define url "https://gemini.herokuapp.com/api/v1/telemetria/enviar_"
 
 //Debug - Mude a variavel DEBUG_ON para True pra fazer com que o os prints sejam ativados.
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG == 1
 #define debug(texto_debug) Serial.print(texto_debug)
